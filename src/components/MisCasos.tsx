@@ -193,7 +193,21 @@ export default function MisCasos({ onSelectCaso, filtroInicial = 'todos' }: MisC
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Vista
+              </label>
+              <select
+                value={filtroAsignacion}
+                onChange={(e) => setFiltroAsignacion(e.target.value as 'mis_casos' | 'todos')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="todos">Todos los casos</option>
+                <option value="mis_casos">Mis casos</option>
+              </select>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Asignado a
