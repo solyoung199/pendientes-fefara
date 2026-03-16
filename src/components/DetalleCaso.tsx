@@ -36,13 +36,13 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
   const [estadoAndar, setEstadoAndar] = useState('');
   const [asignadoA, setAsignadoA] = useState('');
   const [decisionEliminar, setDecisionEliminar] = useState('');
-  const [comentarioInterno, setComentarioInterno] = useState('');
+  const [codigoGestion, setCodigoGestion] = useState('');
+  const [codigoBusquedaGestion, setCodigoBusquedaGestion] = useState('');
 
   const [tipoAccion, setTipoAccion] = useState<'Llamado' | 'Correo' | 'WhatsApp'>('Llamado');
   const [fechaAccion, setFechaAccion] = useState('');
   const [resultadoAccion, setResultadoAccion] = useState('');
-  const [codigoAccion, setCodigoAccion] = useState('');
-  const [codigoBusqueda, setCodigoBusqueda] = useState('');
+  const [observacionAccion, setObservacionAccion] = useState('');
 
   useEffect(() => {
     cargarDatos();
@@ -66,7 +66,8 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
       setEstadoAndar(casoResult.data.estado_andar);
       setAsignadoA(casoResult.data.asignado_a || '');
       setDecisionEliminar(casoResult.data.decision_eliminar);
-      setComentarioInterno(casoResult.data.comentario_interno || '');
+      setCodigoGestion('');
+      setCodigoBusquedaGestion('');
     }
     if (timelineResult.data) setTimeline(timelineResult.data);
     if (accionesResult.data) setAcciones(accionesResult.data);
@@ -95,7 +96,7 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
         estado_andar: estadoAndar,
         asignado_a: asignadoA || null,
         decision_eliminar: decisionEliminar,
-        comentario_interno: comentarioInterno || null,
+        comentario_interno: null,
         updated_at: new Date().toISOString()
       })
       .eq('id', caso.id);
@@ -106,11 +107,12 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
         usuario_id: usuario?.id || null,
         usuario_nombre: usuario?.nombre || 'Sistema',
         accion: 'Actualización de gestión interna',
+        codigo: codigoGestion || null,
         estado_anterior: estadoAnterior,
         estado_nuevo: estadoAndar,
         asignado_anterior: asignadoAnterior,
         asignado_nuevo: asignadoA || null,
-        observaciones: comentarioInterno || null
+        observaciones: null
       });
 
       alert('Datos guardados correctamente');
@@ -121,7 +123,7 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
   };
 
   const guardarAccion = async () => {
-    if (!caso || !tipoAccion || !fechaAccion || !resultadoAccion || !codigoAccion) {
+    if (!caso || !tipoAccion || !fechaAccion || !resultadoAccion) {
       alert('Por favor complete todos los campos obligatorios');
       return;
     }
@@ -138,7 +140,7 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
         tipo: tipoAccion,
         fecha: fechaAccion,
         resultado: resultadoAccion,
-        observacion: null,
+        observacion: observacionAccion || null,
         numero_contacto: null,
         usuario: usuario?.nombre || 'Usuario Sistema'
       })
@@ -158,16 +160,14 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
         usuario_id: usuario?.id || null,
         usuario_nombre: usuario?.nombre || 'Sistema',
         accion: `Registrar ${tipoAccion}`,
-        codigo: codigoAccion,
-        observaciones: `${resultadoAccion}`
+        observaciones: `${resultadoAccion}${observacionAccion ? ' - ' + observacionAccion : ''}`
       });
 
       alert('Acción registrada correctamente');
       setTipoAccion('Llamado');
       setFechaAccion('');
       setResultadoAccion('');
-      setCodigoAccion('');
-      setCodigoBusqueda('');
+      setObservacionAccion('');
       cargarDatos();
     } else {
       alert('Error al guardar acción: ' + error.message);
@@ -222,9 +222,9 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
                                  tipoAccion === 'Correo' ? resultadosCorreo :
                                  resultadosWhatsApp;
 
-  const codigosFiltrados = codigosAccion.filter(codigo =>
-    codigo.codigo.toLowerCase().includes(codigoBusqueda.toLowerCase()) ||
-    codigo.descripcion?.toLowerCase().includes(codigoBusqueda.toLowerCase())
+  const codigosFiltradosGestion = codigosAccion.filter(codigo =>
+    codigo.codigo.toLowerCase().includes(codigoBusquedaGestion.toLowerCase()) ||
+    codigo.descripcion?.toLowerCase().includes(codigoBusquedaGestion.toLowerCase())
   );
 
   return (
@@ -472,16 +472,40 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Comentario Interno (opcional)
+                Cod. (Código de acción)
               </label>
-              <textarea
-                value={comentarioInterno}
-                onChange={(e) => setComentarioInterno(e.target.value)}
-                disabled={!puedeGestionarCaso}
-                rows={3}
-                placeholder="Notas internas sobre el caso..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={codigoBusquedaGestion}
+                  onChange={(e) => setCodigoBusquedaGestion(e.target.value)}
+                  disabled={!puedeGestionarCaso}
+                  placeholder="Buscar código..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
+                />
+                {codigoBusquedaGestion && codigosFiltradosGestion.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {codigosFiltradosGestion.map((codigo) => (
+                      <div
+                        key={codigo.id}
+                        onClick={() => {
+                          setCodigoGestion(codigo.codigo);
+                          setCodigoBusquedaGestion(codigo.codigo);
+                        }}
+                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                      >
+                        <div className="font-medium text-sm text-gray-900">{codigo.codigo}</div>
+                        <div className="text-xs text-gray-500">{codigo.descripcion}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {codigoGestion && (
+                <div className="mt-2 text-sm text-gray-600">
+                  Código seleccionado: <span className="font-medium">{codigoGestion}</span>
+                </div>
+              )}
             </div>
 
             <button
@@ -560,41 +584,15 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cod. (Código de acción)
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={codigoBusqueda}
-                  onChange={(e) => setCodigoBusqueda(e.target.value)}
-                  disabled={!puedeGestionarCaso}
-                  placeholder="Buscar código..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
-                />
-                {codigoBusqueda && codigosFiltrados.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                    {codigosFiltrados.map((codigo) => (
-                      <div
-                        key={codigo.id}
-                        onClick={() => {
-                          setCodigoAccion(codigo.codigo);
-                          setCodigoBusqueda(codigo.codigo);
-                        }}
-                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                      >
-                        <div className="font-medium text-sm text-gray-900">{codigo.codigo}</div>
-                        <div className="text-xs text-gray-500">{codigo.descripcion}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {codigoAccion && (
-                <div className="mt-2 text-sm text-gray-600">
-                  Código seleccionado: <span className="font-medium">{codigoAccion}</span>
-                </div>
-              )}
+              <label className="block text-sm font-medium text-gray-700 mb-2">Observación</label>
+              <textarea
+                value={observacionAccion}
+                onChange={(e) => setObservacionAccion(e.target.value)}
+                disabled={!puedeGestionarCaso}
+                rows={3}
+                placeholder="Detalles adicionales de la acción..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
+              />
             </div>
 
             <button
