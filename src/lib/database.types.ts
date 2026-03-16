@@ -15,6 +15,7 @@ export interface Database {
           nombre: string
           email: string
           activo: boolean
+          rol: 'Owner' | 'Gestor' | 'Operario'
           created_at: string
         }
         Insert: {
@@ -22,6 +23,7 @@ export interface Database {
           nombre: string
           email: string
           activo?: boolean
+          rol?: 'Owner' | 'Gestor' | 'Operario'
           created_at?: string
         }
         Update: {
@@ -29,6 +31,7 @@ export interface Database {
           nombre?: string
           email?: string
           activo?: boolean
+          rol?: 'Owner' | 'Gestor' | 'Operario'
           created_at?: string
         }
       }

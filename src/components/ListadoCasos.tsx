@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Search, FileText, Download } from 'lucide-react';
+import { Search, FileText, Download, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import type { Database } from '../lib/database.types';
 import * as XLSX from 'xlsx';
 
@@ -13,6 +14,7 @@ interface ListadoCasosProps {
 }
 
 export default function ListadoCasos({ onSelectCaso }: ListadoCasosProps) {
+  const { usuario: usuarioActual } = useAuth();
   const [casos, setCasos] = useState<Caso[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [acciones, setAcciones] = useState<Accion[]>([]);
@@ -20,7 +22,10 @@ export default function ListadoCasos({ onSelectCaso }: ListadoCasosProps) {
   const [filtroEstadoFefara, setFiltroEstadoFefara] = useState('');
   const [filtroEstadoAndar, setFiltroEstadoAndar] = useState('');
   const [filtroTipoIncidente, setFiltroTipoIncidente] = useState('');
+  const [filtroAsignadoA, setFiltroAsignadoA] = useState('');
   const [busqueda, setBusqueda] = useState('');
+  const [mensajeExito, setMensajeExito] = useState<string | null>(null);
+  const [asignandoCaso, setAsignandoCaso] = useState<string | null>(null);
 
   useEffect(() => {
     cargarDatos();
@@ -115,16 +120,68 @@ export default function ListadoCasos({ onSelectCaso }: ListadoCasosProps) {
     return new Date(fecha).toLocaleDateString('es-AR');
   };
 
+  const puedeAsignarCasos = (): boolean => {
+    if (!usuarioActual) return false;
+    return usuarioActual.rol === 'Owner' || usuarioActual.rol === 'Gestor';
+  };
+
+  const asignarCasoRapido = async (casoId: string, usuarioId: string) => {
+    if (!puedeAsignarCasos()) {
+      alert('No tienes permisos para asignar casos');
+      return;
+    }
+
+    setAsignandoCaso(casoId);
+
+    try {
+      const caso = casos.find(c => c.id === casoId);
+      const usuarioAsignado = usuarios.find(u => u.id === usuarioId);
+
+      const { error } = await supabase
+        .from('casos')
+        .update({
+          asignado_a: usuarioId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', casoId);
+
+      if (error) throw error;
+
+      await supabase.from('historial_gestion_andar').insert({
+        caso_id: casoId,
+        fecha: new Date().toISOString(),
+        usuario_id: usuarioActual?.id,
+        usuario_nombre: usuarioActual?.nombre || 'Sistema',
+        accion: 'Asignación rápida',
+        asignado_anterior: caso?.asignado_a,
+        asignado_nuevo: usuarioId,
+        observaciones: `Caso asignado a ${usuarioAsignado?.nombre} desde el listado de casos`
+      });
+
+      setCasos(casos.map(c => c.id === casoId ? { ...c, asignado_a: usuarioId } : c));
+
+      setMensajeExito(`Caso asignado a ${usuarioAsignado?.nombre}`);
+      setTimeout(() => setMensajeExito(null), 3000);
+    } catch (error) {
+      console.error('Error asignando caso:', error);
+      alert('Error al asignar el caso');
+    } finally {
+      setAsignandoCaso(null);
+    }
+  };
+
   const casosFiltrados = casos.filter(caso => {
     const matchEstadoFefara = !filtroEstadoFefara || caso.estado_fefara === filtroEstadoFefara;
     const matchEstadoAndar = !filtroEstadoAndar || caso.estado_andar === filtroEstadoAndar;
     const matchTipoIncidente = !filtroTipoIncidente ||
       (filtroTipoIncidente === 'sin_tipo' ? !caso.tipo_incidente : caso.tipo_incidente === filtroTipoIncidente);
+    const matchAsignadoA = !filtroAsignadoA ||
+      (filtroAsignadoA === 'sin_asignar' ? !caso.asignado_a : caso.asignado_a === filtroAsignadoA);
     const matchBusqueda = !busqueda ||
       caso.afiliado_nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       caso.afiliado_cuil.includes(busqueda);
 
-    return matchEstadoFefara && matchEstadoAndar && matchTipoIncidente && matchBusqueda;
+    return matchEstadoFefara && matchEstadoAndar && matchTipoIncidente && matchAsignadoA && matchBusqueda;
   });
 
   const estadosFefara = Array.from(new Set(casos.map(c => c.estado_fefara))).sort();
@@ -140,6 +197,13 @@ export default function ListadoCasos({ onSelectCaso }: ListadoCasosProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {mensajeExito && (
+        <div className="fixed top-4 right-4 z-50 bg-green-50 border border-green-200 rounded-lg shadow-lg p-4 flex items-center gap-3 animate-fade-in">
+          <CheckCircle className="w-5 h-5 text-green-600" />
+          <p className="text-green-800 font-medium">{mensajeExito}</p>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-semibold text-gray-900 mb-2">Listado de Casos</h1>
@@ -148,8 +212,25 @@ export default function ListadoCasos({ onSelectCaso }: ListadoCasosProps) {
 
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-end justify-between gap-8">
-            <div className="flex items-end gap-4 flex-1">
-              <div className="min-w-[200px]">
+            <div className="flex items-end gap-4 flex-1 flex-wrap">
+              <div className="min-w-[180px]">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Asignado a
+                </label>
+                <select
+                  value={filtroAsignadoA}
+                  onChange={(e) => setFiltroAsignadoA(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Todos</option>
+                  <option value="sin_asignar">Sin asignar</option>
+                  {usuarios.map(user => (
+                    <option key={user.id} value={user.id}>{user.nombre}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="min-w-[180px]">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Estado FEFARA
                 </label>
@@ -165,7 +246,7 @@ export default function ListadoCasos({ onSelectCaso }: ListadoCasosProps) {
                 </select>
               </div>
 
-              <div className="min-w-[200px]">
+              <div className="min-w-[180px]">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Estado ANDAR
                 </label>
@@ -181,7 +262,7 @@ export default function ListadoCasos({ onSelectCaso }: ListadoCasosProps) {
                 </select>
               </div>
 
-              <div className="min-w-[180px]">
+              <div className="min-w-[160px]">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Tipo Incidente
                 </label>
@@ -306,7 +387,23 @@ export default function ListadoCasos({ onSelectCaso }: ListadoCasosProps) {
                       {formatearFecha(caso.fecha_ingreso)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {obtenerNombreUsuario(caso.asignado_a)}
+                      {!caso.asignado_a && filtroAsignadoA === 'sin_asignar' && puedeAsignarCasos() ? (
+                        <select
+                          value=""
+                          onChange={(e) => asignarCasoRapido(caso.id, e.target.value)}
+                          disabled={asignandoCaso === caso.id}
+                          className="px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <option value="">Asignar a...</option>
+                          {usuarios.map(user => (
+                            <option key={user.id} value={user.id}>
+                              {user.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        obtenerNombreUsuario(caso.asignado_a)
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {obtenerUltimaAccion(caso.id)}
