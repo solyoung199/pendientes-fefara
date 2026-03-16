@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, FileText, Download, Lock } from 'lucide-react';
+import { Search, FileText, Download, Lock, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Database } from '../lib/database.types';
@@ -26,6 +26,8 @@ export default function MisCasos({ onSelectCaso, filtroInicial = 'todos' }: MisC
   const [filtroEstadoFefara, setFiltroEstadoFefara] = useState('');
   const [filtroTipoIncidente, setFiltroTipoIncidente] = useState('');
   const [busquedaGlobal, setBusquedaGlobal] = useState('');
+  const [mensajeExito, setMensajeExito] = useState<string | null>(null);
+  const [asignandoCaso, setAsignandoCaso] = useState<string | null>(null);
 
   useEffect(() => {
     cargarDatos();
@@ -80,6 +82,56 @@ export default function MisCasos({ onSelectCaso, filtroInicial = 'todos' }: MisC
 
   const puedeGestionar = (caso: Caso): boolean => {
     return usuario?.id === caso.asignado_a;
+  };
+
+  const puedeAsignarCasos = (): boolean => {
+    if (!usuario) return false;
+    return usuario.rol === 'Owner' || usuario.rol === 'Gestor';
+  };
+
+  const asignarCasoRapido = async (casoId: string, usuarioId: string) => {
+    if (!puedeAsignarCasos()) {
+      alert('No tienes permisos para asignar casos');
+      return;
+    }
+
+    setAsignandoCaso(casoId);
+
+    try {
+      const caso = casos.find(c => c.id === casoId);
+      const usuarioAsignado = usuarios.find(u => u.id === usuarioId);
+
+      const { error } = await supabase
+        .from('casos')
+        .update({
+          asignado_a: usuarioId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', casoId);
+
+      if (error) throw error;
+
+      await supabase.from('historial_gestion_andar').insert({
+        caso_id: casoId,
+        fecha: new Date().toISOString(),
+        usuario_id: usuario?.id,
+        usuario_nombre: usuario?.nombre || 'Sistema',
+        accion: 'Asignación rápida',
+        asignado_anterior: caso?.asignado_a,
+        asignado_nuevo: usuarioId,
+        observaciones: `Caso asignado a ${usuarioAsignado?.nombre} desde Mis Casos`
+      });
+
+      setCasos(casos.map(c => c.id === casoId ? { ...c, asignado_a: usuarioId } : c));
+
+      setMensajeExito(`Caso asignado a ${usuarioAsignado?.nombre}`);
+      setTimeout(() => setMensajeExito(null), 3000);
+    } catch (error) {
+      console.error('Error asignando caso:', error);
+      alert('Error al asignar el caso');
+    } finally {
+      setAsignandoCaso(null);
+    }
   };
 
   const estadosAndar = Array.from(new Set(casos.map(c => c.estado_andar))).sort();
@@ -168,6 +220,13 @@ export default function MisCasos({ onSelectCaso, filtroInicial = 'todos' }: MisC
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {mensajeExito && (
+        <div className="fixed top-4 right-4 z-50 bg-green-50 border border-green-200 rounded-lg shadow-lg p-4 flex items-center gap-3 animate-fade-in">
+          <CheckCircle className="w-5 h-5 text-green-600" />
+          <p className="text-green-800 font-medium">{mensajeExito}</p>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-semibold text-gray-900 mb-2">Gestión de casos</h1>
@@ -382,14 +441,30 @@ export default function MisCasos({ onSelectCaso, filtroInicial = 'todos' }: MisC
                         </span>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm">
-                        <div className="flex items-center gap-2">
-                          {obtenerNombreUsuario(caso.asignado_a)}
-                          {esMiCaso && (
-                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                              Yo
-                            </span>
-                          )}
-                        </div>
+                        {!caso.asignado_a && filtroAsignadoA === 'sin_asignar' && puedeAsignarCasos() ? (
+                          <select
+                            value=""
+                            onChange={(e) => asignarCasoRapido(caso.id, e.target.value)}
+                            disabled={asignandoCaso === caso.id}
+                            className="px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <option value="">Asignar a...</option>
+                            {usuarios.map(user => (
+                              <option key={user.id} value={user.id}>
+                                {user.nombre}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            {obtenerNombreUsuario(caso.asignado_a)}
+                            {esMiCaso && (
+                              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                Yo
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-600">
                         {obtenerUltimaAccion(caso.id)}
