@@ -1,17 +1,18 @@
 import { useState } from 'react';
-import { BarChart3, ClipboardList } from 'lucide-react';
+import { BarChart3, ClipboardList, CircleUser as UserCircle } from 'lucide-react';
 import MisCasos from './components/MisCasos';
 import DetalleCaso from './components/DetalleCaso';
 import ReporteSemanal from './components/ReporteSemanal';
 import SelectorUsuario from './components/SelectorUsuario';
 import { AuthProvider } from './contexts/AuthContext';
 
-type Vista = 'casos' | 'detalle' | 'reporte';
+type Vista = 'mis_casos' | 'todos_casos' | 'detalle' | 'reporte';
 
 function AppContent() {
-  const [vistaActual, setVistaActual] = useState<Vista>('casos');
+  const [vistaActual, setVistaActual] = useState<Vista>('mis_casos');
   const [casoSeleccionado, setCasoSeleccionado] = useState<string | null>(null);
   const [puedeGestionarCaso, setPuedeGestionarCaso] = useState<boolean>(true);
+  const [filtroAsignacion, setFiltroAsignacion] = useState<'mis_casos' | 'todos'>('mis_casos');
 
   const handleSelectCaso = (casoId: string, puedeGestionar: boolean) => {
     setCasoSeleccionado(casoId);
@@ -21,7 +22,12 @@ function AppContent() {
 
   const handleVolver = () => {
     setCasoSeleccionado(null);
-    setVistaActual('casos');
+    setVistaActual(filtroAsignacion === 'mis_casos' ? 'mis_casos' : 'todos_casos');
+  };
+
+  const cambiarVistaACasos = (filtro: 'mis_casos' | 'todos') => {
+    setFiltroAsignacion(filtro);
+    setVistaActual(filtro === 'mis_casos' ? 'mis_casos' : 'todos_casos');
   };
 
   return (
@@ -38,9 +44,20 @@ function AppContent() {
             </div>
             <div className="flex space-x-2">
               <button
-                onClick={() => setVistaActual('casos')}
+                onClick={() => cambiarVistaACasos('mis_casos')}
                 className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                  vistaActual === 'casos' || vistaActual === 'detalle'
+                  vistaActual === 'mis_casos' || (vistaActual === 'detalle' && filtroAsignacion === 'mis_casos')
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <UserCircle className="h-5 w-5 mr-2" />
+                Mis casos
+              </button>
+              <button
+                onClick={() => cambiarVistaACasos('todos')}
+                className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  vistaActual === 'todos_casos' || (vistaActual === 'detalle' && filtroAsignacion === 'todos')
                     ? 'bg-blue-600 text-white'
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
@@ -65,8 +82,11 @@ function AppContent() {
       </nav>
 
       <main>
-        {vistaActual === 'casos' && (
-          <MisCasos onSelectCaso={handleSelectCaso} />
+        {vistaActual === 'mis_casos' && (
+          <MisCasos onSelectCaso={handleSelectCaso} filtroInicial="mis_casos" />
+        )}
+        {vistaActual === 'todos_casos' && (
+          <MisCasos onSelectCaso={handleSelectCaso} filtroInicial="todos" />
         )}
         {vistaActual === 'detalle' && casoSeleccionado && (
           <DetalleCaso casoId={casoSeleccionado} onVolver={handleVolver} puedeGestionar={puedeGestionarCaso} />

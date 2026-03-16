@@ -11,15 +11,16 @@ type Accion = Database['public']['Tables']['acciones']['Row'];
 
 interface MisCasosProps {
   onSelectCaso: (casoId: string, puedeGestionar: boolean) => void;
+  filtroInicial?: 'mis_casos' | 'todos';
 }
 
-export default function MisCasos({ onSelectCaso }: MisCasosProps) {
+export default function MisCasos({ onSelectCaso, filtroInicial = 'todos' }: MisCasosProps) {
   const { usuario } = useAuth();
   const [casos, setCasos] = useState<Caso[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [acciones, setAcciones] = useState<Accion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtroAsignacion, setFiltroAsignacion] = useState<'mis_casos' | 'todos'>('todos');
+  const [filtroAsignacion, setFiltroAsignacion] = useState<'mis_casos' | 'todos'>(filtroInicial);
   const [filtroEstadoAndar, setFiltroEstadoAndar] = useState('');
   const [filtroEstadoFefara, setFiltroEstadoFefara] = useState('');
   const [filtroTipoIncidente, setFiltroTipoIncidente] = useState('');
