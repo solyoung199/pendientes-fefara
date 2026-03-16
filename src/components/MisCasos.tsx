@@ -21,10 +21,11 @@ export default function MisCasos({ onSelectCaso, filtroInicial = 'todos' }: MisC
   const [acciones, setAcciones] = useState<Accion[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroAsignacion, setFiltroAsignacion] = useState<'mis_casos' | 'todos'>(filtroInicial);
+  const [filtroAsignadoA, setFiltroAsignadoA] = useState('');
   const [filtroEstadoAndar, setFiltroEstadoAndar] = useState('');
   const [filtroEstadoFefara, setFiltroEstadoFefara] = useState('');
   const [filtroTipoIncidente, setFiltroTipoIncidente] = useState('');
-  const [busqueda, setBusqueda] = useState('');
+  const [busquedaGlobal, setBusquedaGlobal] = useState('');
 
   useEffect(() => {
     cargarDatos();
@@ -90,6 +91,16 @@ export default function MisCasos({ onSelectCaso, filtroInicial = 'todos' }: MisC
     casosFiltrados = casosFiltrados.filter(c => c.asignado_a === usuario.id);
   }
 
+  if (filtroAsignadoA) {
+    if (filtroAsignadoA === 'sin_asignar') {
+      casosFiltrados = casosFiltrados.filter(c => !c.asignado_a);
+    } else if (filtroAsignadoA === 'todos') {
+      // No filtrar
+    } else {
+      casosFiltrados = casosFiltrados.filter(c => c.asignado_a === filtroAsignadoA);
+    }
+  }
+
   if (filtroEstadoAndar) {
     casosFiltrados = casosFiltrados.filter(c => c.estado_andar === filtroEstadoAndar);
   }
@@ -106,12 +117,15 @@ export default function MisCasos({ onSelectCaso, filtroInicial = 'todos' }: MisC
     }
   }
 
-  if (busqueda) {
-    const busquedaLower = busqueda.toLowerCase();
+  if (busquedaGlobal) {
+    const busquedaLower = busquedaGlobal.toLowerCase();
     casosFiltrados = casosFiltrados.filter(caso =>
       caso.numero_tramite.toLowerCase().includes(busquedaLower) ||
+      caso.numero_tratamiento?.toLowerCase().includes(busquedaLower) ||
       caso.afiliado_nombre.toLowerCase().includes(busquedaLower) ||
       caso.afiliado_cuil.toLowerCase().includes(busquedaLower) ||
+      caso.afiliado_con_cud?.toLowerCase().includes(busquedaLower) ||
+      caso.tipo_beneficio?.toLowerCase().includes(busquedaLower) ||
       caso.tratamiento?.toLowerCase().includes(busquedaLower) ||
       caso.diagnostico?.toLowerCase().includes(busquedaLower)
     );
@@ -163,34 +177,37 @@ export default function MisCasos({ onSelectCaso, filtroInicial = 'todos' }: MisC
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Buscar caso
-              </label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Trámite, afiliado, CUIL, tratamiento..."
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Buscador global
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar por N° trámite, N° tratamiento, afiliado, afiliado con CUD, tipo de beneficio..."
+                value={busquedaGlobal}
+                onChange={(e) => setBusquedaGlobal(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mostrar
+                Asignado a
               </label>
               <select
-                value={filtroAsignacion}
-                onChange={(e) => setFiltroAsignacion(e.target.value as 'mis_casos' | 'todos')}
+                value={filtroAsignadoA}
+                onChange={(e) => setFiltroAsignadoA(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="mis_casos">Mis casos</option>
-                <option value="todos">Todos los casos</option>
+                <option value="todos">Todos</option>
+                <option value="sin_asignar">Sin asignar</option>
+                {usuarios.map(user => (
+                  <option key={user.id} value={user.id}>{user.nombre}</option>
+                ))}
               </select>
             </div>
 
@@ -225,9 +242,7 @@ export default function MisCasos({ onSelectCaso, filtroInicial = 'todos' }: MisC
                 ))}
               </select>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tipo Incidente
@@ -244,16 +259,16 @@ export default function MisCasos({ onSelectCaso, filtroInicial = 'todos' }: MisC
                 <option value="sin_tipo">Sin tipo</option>
               </select>
             </div>
+          </div>
 
-            <div className="flex items-end">
-              <button
-                onClick={exportarExcel}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                Exportar a Excel
-              </button>
-            </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={exportarExcel}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Exportar a Excel
+            </button>
           </div>
         </div>
 
@@ -283,6 +298,12 @@ export default function MisCasos({ onSelectCaso, filtroInicial = 'todos' }: MisC
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Afiliado
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Afiliado con CUD
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Tipo de beneficio
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Tipo
@@ -315,6 +336,12 @@ export default function MisCasos({ onSelectCaso, filtroInicial = 'todos' }: MisC
                       <td className="px-4 py-4 text-sm text-gray-900">
                         <div>{caso.afiliado_nombre}</div>
                         <div className="text-xs text-gray-500">{caso.afiliado_cuil}</div>
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-600">
+                        {caso.afiliado_con_cud || '-'}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-600">
+                        {caso.tipo_beneficio || '-'}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
                         {caso.tipo_incidente || '-'}
