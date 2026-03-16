@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import type { Database } from '../lib/database.types';
 
 type Caso = Database['public']['Tables']['casos']['Row'];
@@ -11,14 +12,20 @@ type Usuario = Database['public']['Tables']['usuarios']['Row'];
 interface DetalleCasoProps {
   casoId: string;
   onVolver: () => void;
+  puedeGestionar?: boolean;
 }
 
-export default function DetalleCaso({ casoId, onVolver }: DetalleCasoProps) {
+export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: DetalleCasoProps) {
+  const { usuario } = useAuth();
   const [caso, setCaso] = useState<Caso | null>(null);
   const [timeline, setTimeline] = useState<Timeline[]>([]);
   const [acciones, setAcciones] = useState<Accion[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const puedeGestionarCaso = puedeGestionar !== undefined
+    ? puedeGestionar
+    : (caso?.asignado_a === usuario?.id);
 
   const [estadoAndar, setEstadoAndar] = useState('');
   const [asignadoA, setAsignadoA] = useState('');
@@ -61,6 +68,11 @@ export default function DetalleCaso({ casoId, onVolver }: DetalleCasoProps) {
   const guardarGestionInterna = async () => {
     if (!caso) return;
 
+    if (!puedeGestionarCaso) {
+      alert('No tienes permisos para gestionar este caso. Solo el usuario asignado puede realizar cambios.');
+      return;
+    }
+
     const { error } = await supabase
       .from('casos')
       .update({
@@ -86,6 +98,11 @@ export default function DetalleCaso({ casoId, onVolver }: DetalleCasoProps) {
       return;
     }
 
+    if (!puedeGestionarCaso) {
+      alert('No tienes permisos para registrar acciones en este caso. Solo el usuario asignado puede realizar acciones.');
+      return;
+    }
+
     const { data, error } = await supabase
       .from('acciones')
       .insert({
@@ -95,7 +112,7 @@ export default function DetalleCaso({ casoId, onVolver }: DetalleCasoProps) {
         resultado: resultadoAccion,
         observacion: observacionAccion || null,
         numero_contacto: null,
-        usuario: 'Usuario Sistema'
+        usuario: usuario?.nombre || 'Usuario Sistema'
       })
       .select()
       .single();
@@ -270,16 +287,25 @@ export default function DetalleCaso({ casoId, onVolver }: DetalleCasoProps) {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4 pb-3 border-b">
-            Gestión Interna ANDAR
-          </h2>
+          <div className="flex items-center justify-between mb-4 pb-3 border-b">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Gestión Interna ANDAR
+            </h2>
+            {!puedeGestionarCaso && (
+              <div className="flex items-center gap-2 text-amber-700 bg-amber-50 px-3 py-1.5 rounded-md">
+                <Lock className="h-4 w-4" />
+                <span className="text-sm font-medium">Solo disponible para el usuario asignado</span>
+              </div>
+            )}
+          </div>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Estado ANDAR</label>
               <select
                 value={estadoAndar}
                 onChange={(e) => setEstadoAndar(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={!puedeGestionarCaso}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
               >
                 <option value="Pendiente">Pendiente</option>
                 <option value="En gestión">En gestión</option>
@@ -294,7 +320,8 @@ export default function DetalleCaso({ casoId, onVolver }: DetalleCasoProps) {
               <select
                 value={asignadoA}
                 onChange={(e) => setAsignadoA(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={!puedeGestionarCaso}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
               >
                 <option value="">Sin asignar</option>
                 {usuarios.map((usuario) => (
@@ -308,33 +335,36 @@ export default function DetalleCaso({ casoId, onVolver }: DetalleCasoProps) {
                 Corresponde Eliminar
               </label>
               <div className="flex gap-6">
-                <label className="inline-flex items-center cursor-pointer">
+                <label className={`inline-flex items-center ${puedeGestionarCaso ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
                   <input
                     type="radio"
                     value="Sí"
                     checked={decisionEliminar === 'Sí'}
                     onChange={(e) => setDecisionEliminar(e.target.value)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    disabled={!puedeGestionarCaso}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 disabled:cursor-not-allowed"
                   />
                   <span className="ml-2 text-gray-700">Sí</span>
                 </label>
-                <label className="inline-flex items-center cursor-pointer">
+                <label className={`inline-flex items-center ${puedeGestionarCaso ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
                   <input
                     type="radio"
                     value="No"
                     checked={decisionEliminar === 'No'}
                     onChange={(e) => setDecisionEliminar(e.target.value)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    disabled={!puedeGestionarCaso}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 disabled:cursor-not-allowed"
                   />
                   <span className="ml-2 text-gray-700">No</span>
                 </label>
-                <label className="inline-flex items-center cursor-pointer">
+                <label className={`inline-flex items-center ${puedeGestionarCaso ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
                   <input
                     type="radio"
                     value="Pendiente"
                     checked={decisionEliminar === 'Pendiente'}
                     onChange={(e) => setDecisionEliminar(e.target.value)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    disabled={!puedeGestionarCaso}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 disabled:cursor-not-allowed"
                   />
                   <span className="ml-2 text-gray-700">Pendiente</span>
                 </label>
@@ -348,15 +378,17 @@ export default function DetalleCaso({ casoId, onVolver }: DetalleCasoProps) {
               <textarea
                 value={comentarioInterno}
                 onChange={(e) => setComentarioInterno(e.target.value)}
+                disabled={!puedeGestionarCaso}
                 rows={3}
                 placeholder="Notas internas sobre el caso..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
               />
             </div>
 
             <button
               onClick={guardarGestionInterna}
-              className="mt-2 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={!puedeGestionarCaso}
+              className="mt-2 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
             >
               <Save className="h-4 w-4 mr-2" />
               Guardar Cambios
@@ -365,9 +397,17 @@ export default function DetalleCaso({ casoId, onVolver }: DetalleCasoProps) {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4 pb-3 border-b">
-            Registrar Acción
-          </h2>
+          <div className="flex items-center justify-between mb-4 pb-3 border-b">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Registrar Acción
+            </h2>
+            {!puedeGestionarCaso && (
+              <div className="flex items-center gap-2 text-amber-700 bg-amber-50 px-3 py-1.5 rounded-md">
+                <Lock className="h-4 w-4" />
+                <span className="text-sm font-medium">Solo disponible para el usuario asignado</span>
+              </div>
+            )}
+          </div>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -380,7 +420,8 @@ export default function DetalleCaso({ casoId, onVolver }: DetalleCasoProps) {
                     setTipoAccion(e.target.value as 'Llamado' | 'Correo');
                     setResultadoAccion('');
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={!puedeGestionarCaso}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
                 >
                   <option value="Llamado">Llamado</option>
                   <option value="Correo">Correo</option>
@@ -395,7 +436,8 @@ export default function DetalleCaso({ casoId, onVolver }: DetalleCasoProps) {
                   type="date"
                   value={fechaAccion}
                   onChange={(e) => setFechaAccion(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={!puedeGestionarCaso}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
                 />
               </div>
 
@@ -406,7 +448,8 @@ export default function DetalleCaso({ casoId, onVolver }: DetalleCasoProps) {
                 <select
                   value={resultadoAccion}
                   onChange={(e) => setResultadoAccion(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={!puedeGestionarCaso}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
                 >
                   <option value="">Seleccionar resultado</option>
                   {resultadosDisponibles.map(resultado => (
@@ -421,15 +464,17 @@ export default function DetalleCaso({ casoId, onVolver }: DetalleCasoProps) {
               <textarea
                 value={observacionAccion}
                 onChange={(e) => setObservacionAccion(e.target.value)}
+                disabled={!puedeGestionarCaso}
                 rows={3}
                 placeholder="Detalles adicionales de la acción..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
               />
             </div>
 
             <button
               onClick={guardarAccion}
-              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+              disabled={!puedeGestionarCaso}
+              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
             >
               <Save className="h-4 w-4 mr-2" />
               Guardar Acción

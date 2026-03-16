@@ -1,39 +1,27 @@
 import { useState } from 'react';
-import { FileText, BarChart3, ClipboardList, CircleUser as UserCircle } from 'lucide-react';
-import ListadoCasos from './components/ListadoCasos';
+import { BarChart3, ClipboardList } from 'lucide-react';
 import MisCasos from './components/MisCasos';
 import DetalleCaso from './components/DetalleCaso';
 import ReporteSemanal from './components/ReporteSemanal';
 import SelectorUsuario from './components/SelectorUsuario';
 import { AuthProvider } from './contexts/AuthContext';
 
-type Vista = 'listado' | 'mis_casos' | 'detalle' | 'detalle_mis_casos' | 'reporte';
+type Vista = 'casos' | 'detalle' | 'reporte';
 
 function AppContent() {
-  const [vistaActual, setVistaActual] = useState<Vista>('mis_casos');
+  const [vistaActual, setVistaActual] = useState<Vista>('casos');
   const [casoSeleccionado, setCasoSeleccionado] = useState<string | null>(null);
   const [puedeGestionarCaso, setPuedeGestionarCaso] = useState<boolean>(true);
 
-  const handleSelectCasoListado = (casoId: string) => {
+  const handleSelectCaso = (casoId: string, puedeGestionar: boolean) => {
     setCasoSeleccionado(casoId);
-    setPuedeGestionarCaso(true);
+    setPuedeGestionarCaso(puedeGestionar);
     setVistaActual('detalle');
   };
 
-  const handleSelectCasoMisCasos = (casoId: string, puedeGestionar: boolean) => {
-    setCasoSeleccionado(casoId);
-    setPuedeGestionarCaso(puedeGestionar);
-    setVistaActual('detalle_mis_casos');
-  };
-
-  const handleVolverListado = () => {
+  const handleVolver = () => {
     setCasoSeleccionado(null);
-    setVistaActual('listado');
-  };
-
-  const handleVolverMisCasos = () => {
-    setCasoSeleccionado(null);
-    setVistaActual('mis_casos');
+    setVistaActual('casos');
   };
 
   return (
@@ -50,26 +38,15 @@ function AppContent() {
             </div>
             <div className="flex space-x-2">
               <button
-                onClick={() => setVistaActual('mis_casos')}
+                onClick={() => setVistaActual('casos')}
                 className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                  vistaActual === 'mis_casos' || vistaActual === 'detalle_mis_casos'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <UserCircle className="h-5 w-5 mr-2" />
-                Mis casos
-              </button>
-              <button
-                onClick={() => setVistaActual('listado')}
-                className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                  vistaActual === 'listado' || vistaActual === 'detalle'
+                  vistaActual === 'casos' || vistaActual === 'detalle'
                     ? 'bg-blue-600 text-white'
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
               >
                 <ClipboardList className="h-5 w-5 mr-2" />
-                Todos los casos
+                Casos
               </button>
               <button
                 onClick={() => setVistaActual('reporte')}
@@ -88,17 +65,11 @@ function AppContent() {
       </nav>
 
       <main>
-        {vistaActual === 'mis_casos' && (
-          <MisCasos onSelectCaso={handleSelectCasoMisCasos} />
-        )}
-        {vistaActual === 'listado' && (
-          <ListadoCasos onSelectCaso={handleSelectCasoListado} />
+        {vistaActual === 'casos' && (
+          <MisCasos onSelectCaso={handleSelectCaso} />
         )}
         {vistaActual === 'detalle' && casoSeleccionado && (
-          <DetalleCaso casoId={casoSeleccionado} onVolver={handleVolverListado} />
-        )}
-        {vistaActual === 'detalle_mis_casos' && casoSeleccionado && (
-          <DetalleCaso casoId={casoSeleccionado} onVolver={handleVolverMisCasos} puedeGestionar={puedeGestionarCaso} />
+          <DetalleCaso casoId={casoSeleccionado} onVolver={handleVolver} puedeGestionar={puedeGestionarCaso} />
         )}
         {vistaActual === 'reporte' && (
           <ReporteSemanal />

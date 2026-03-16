@@ -19,7 +19,7 @@ export default function MisCasos({ onSelectCaso }: MisCasosProps) {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [acciones, setAcciones] = useState<Accion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtroAsignacion, setFiltroAsignacion] = useState<'mis_casos' | 'todos'>('mis_casos');
+  const [filtroAsignacion, setFiltroAsignacion] = useState<'mis_casos' | 'todos'>('todos');
   const [filtroEstadoAndar, setFiltroEstadoAndar] = useState('');
   const [filtroEstadoFefara, setFiltroEstadoFefara] = useState('');
   const [filtroTipoIncidente, setFiltroTipoIncidente] = useState('');
@@ -155,9 +155,9 @@ export default function MisCasos({ onSelectCaso }: MisCasosProps) {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-semibold text-gray-900 mb-2">Mis casos asignados</h1>
+          <h1 className="text-3xl font-semibold text-gray-900 mb-2">Gestión de casos</h1>
           <p className="text-gray-600">
-            Gestiona tus casos asignados. Solo puedes editar y realizar acciones en los casos que te fueron asignados.
+            Visualiza todos los casos del sistema. Solo puedes gestionar y realizar acciones en los casos asignados a ti.
           </p>
         </div>
 
@@ -259,8 +259,15 @@ export default function MisCasos({ onSelectCaso }: MisCasosProps) {
         <div className="bg-white rounded-lg shadow-sm mb-4 p-4">
           <div className="text-sm text-gray-600">
             Mostrando <span className="font-semibold text-gray-900">{casosFiltrados.length}</span> casos
-            {filtroAsignacion === 'mis_casos' && (
-              <span className="ml-2 text-blue-600 font-medium">asignados a mí</span>
+            {filtroAsignacion === 'mis_casos' && usuario && (
+              <span className="ml-2 text-blue-600 font-medium">
+                (asignados a {usuario.nombre})
+              </span>
+            )}
+            {filtroAsignacion === 'todos' && (
+              <span className="ml-2 text-gray-500">
+                del sistema
+              </span>
             )}
           </div>
         </div>
@@ -348,23 +355,10 @@ export default function MisCasos({ onSelectCaso }: MisCasosProps) {
                       <td className="px-4 py-4 whitespace-nowrap text-sm">
                         <button
                           onClick={() => onSelectCaso(caso.id, esMiCaso)}
-                          className={`flex items-center gap-1 px-3 py-1.5 rounded-md transition-colors ${
-                            esMiCaso
-                              ? 'bg-blue-600 text-white hover:bg-blue-700'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                         >
-                          {esMiCaso ? (
-                            <>
-                              <FileText className="w-4 h-4" />
-                              Gestionar
-                            </>
-                          ) : (
-                            <>
-                              <Lock className="w-4 h-4" />
-                              Ver
-                            </>
-                          )}
+                          <FileText className="w-4 h-4" />
+                          Ver detalle
                         </button>
                       </td>
                     </tr>
