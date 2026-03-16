@@ -37,7 +37,6 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
   const [asignadoA, setAsignadoA] = useState('');
   const [decisionEliminar, setDecisionEliminar] = useState('');
   const [codigoGestion, setCodigoGestion] = useState('');
-  const [codigoBusquedaGestion, setCodigoBusquedaGestion] = useState('');
 
   const [tipoAccion, setTipoAccion] = useState<'Llamado' | 'Correo' | 'WhatsApp'>('Llamado');
   const [fechaAccion, setFechaAccion] = useState('');
@@ -67,7 +66,6 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
       setAsignadoA(casoResult.data.asignado_a || '');
       setDecisionEliminar(casoResult.data.decision_eliminar);
       setCodigoGestion('');
-      setCodigoBusquedaGestion('');
     }
     if (timelineResult.data) setTimeline(timelineResult.data);
     if (accionesResult.data) setAcciones(accionesResult.data);
@@ -221,11 +219,6 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
   const resultadosDisponibles = tipoAccion === 'Llamado' ? resultadosLlamado :
                                  tipoAccion === 'Correo' ? resultadosCorreo :
                                  resultadosWhatsApp;
-
-  const codigosFiltradosGestion = codigosAccion.filter(codigo =>
-    codigo.codigo.toLowerCase().includes(codigoBusquedaGestion.toLowerCase()) ||
-    codigo.descripcion?.toLowerCase().includes(codigoBusquedaGestion.toLowerCase())
-  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -474,38 +467,19 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Cod. (Código de acción)
               </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={codigoBusquedaGestion}
-                  onChange={(e) => setCodigoBusquedaGestion(e.target.value)}
-                  disabled={!puedeGestionarCaso}
-                  placeholder="Buscar código..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
-                />
-                {codigoBusquedaGestion && codigosFiltradosGestion.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                    {codigosFiltradosGestion.map((codigo) => (
-                      <div
-                        key={codigo.id}
-                        onClick={() => {
-                          setCodigoGestion(codigo.codigo);
-                          setCodigoBusquedaGestion(codigo.codigo);
-                        }}
-                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                      >
-                        <div className="font-medium text-sm text-gray-900">{codigo.codigo}</div>
-                        <div className="text-xs text-gray-500">{codigo.descripcion}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {codigoGestion && (
-                <div className="mt-2 text-sm text-gray-600">
-                  Código seleccionado: <span className="font-medium">{codigoGestion}</span>
-                </div>
-              )}
+              <select
+                value={codigoGestion}
+                onChange={(e) => setCodigoGestion(e.target.value)}
+                disabled={!puedeGestionarCaso}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
+              >
+                <option value="">Seleccionar código...</option>
+                {codigosAccion.map((codigo) => (
+                  <option key={codigo.id} value={codigo.codigo}>
+                    {codigo.codigo} - {codigo.descripcion}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <button
