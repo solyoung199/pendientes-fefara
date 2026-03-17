@@ -28,6 +28,7 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
   const [historialGestion, setHistorialGestion] = useState<HistorialGestion[]>([]);
   const [codigosAccion, setCodigosAccion] = useState<CodigoAccion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tabActiva, setTabActiva] = useState<'general' | 'medicamentos'>('general');
 
   const puedeGestionarCaso = puedeGestionar !== undefined
     ? puedeGestionar
@@ -231,11 +232,38 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
           Volver al listado
         </button>
 
-        <h1 className="text-3xl font-semibold text-gray-900 mb-8">
+        <h1 className="text-3xl font-semibold text-gray-900 mb-6">
           Detalle del Caso
         </h1>
 
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="mb-6 border-b border-gray-200">
+          <div className="flex gap-4">
+            <button
+              onClick={() => setTabActiva('general')}
+              className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+                tabActiva === 'general'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              General
+            </button>
+            <button
+              onClick={() => setTabActiva('medicamentos')}
+              className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+                tabActiva === 'medicamentos'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Medicamentos
+            </button>
+          </div>
+        </div>
+
+        {tabActiva === 'general' && (
+          <>
+            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4 pb-3 border-b">
             Datos FEFARA
           </h2>
@@ -300,64 +328,6 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
               <p className="mt-1 text-gray-900">{caso.fecha_vencimiento ? formatearFecha(caso.fecha_vencimiento) : '-'}</p>
             </div>
           </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4 pb-3 border-b">
-            Drogas del tratamiento
-          </h2>
-          {drogas.length === 0 ? (
-            <p className="text-gray-500">No hay drogas registradas para este tratamiento</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">N° Tratamiento</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID Interno</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipo Ficha</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ciclo</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Duración</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipo Origen</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Primera Droga</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cant. Drogas</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">CIE</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Diagnóstico</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Indicación Oncológica</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ingreso</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Vencimiento</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Autorización</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Anulación</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Primera Dispensa</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Última Dispensa</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {drogas.map((droga) => (
-                    <tr key={droga.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 text-sm text-gray-900">{droga.numero_tratamiento || '-'}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{droga.id_interno || '-'}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{droga.tipo_ficha || '-'}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{droga.ciclo || '-'}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{droga.duracion || '-'}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{droga.tipo_origen || '-'}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{droga.primera_droga || '-'}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900 text-center">{droga.cantidad_drogas}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{droga.cie || '-'}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{droga.diagnostico || '-'}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{droga.indicacion_oncologica || '-'}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{droga.fecha_ingreso ? formatearFecha(droga.fecha_ingreso) : '-'}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{droga.fecha_vencimiento ? formatearFecha(droga.fecha_vencimiento) : '-'}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{droga.fecha_autorizacion ? formatearFecha(droga.fecha_autorizacion) : '-'}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{droga.fecha_anulacion ? formatearFecha(droga.fecha_anulacion) : '-'}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{droga.fecha_primera_dispensa ? formatearFecha(droga.fecha_primera_dispensa) : '-'}</td>
-                      <td className="px-3 py-2 text-sm text-gray-900">{droga.fecha_ultima_dispensa ? formatearFecha(droga.fecha_ultima_dispensa) : '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -692,6 +662,153 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
             </div>
           )}
         </div>
+          </>
+        )}
+
+        {tabActiva === 'medicamentos' && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 pb-3 border-b">
+              Drogas del tratamiento
+            </h2>
+            {drogas.length === 0 ? (
+              <p className="text-gray-500">No hay drogas registradas para este tratamiento</p>
+            ) : (
+              <div className="space-y-6">
+                {drogas.map((droga, index) => (
+                  <div key={droga.id} className="border rounded-lg p-6 bg-gray-50">
+                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Renglón {droga.renglon || index + 1} - {droga.droga || droga.primera_droga || 'Sin nombre'}
+                      </h3>
+                      <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
+                        droga.estado === 'Autorizado (TT)' ? 'bg-green-100 text-green-800' :
+                        'bg-blue-100 text-blue-800'
+                      }`}>
+                        {droga.estado || 'Sin estado'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">ID Prescripción</label>
+                        <p className="text-sm text-gray-900">{droga.id_prescripcion || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Renglón</label>
+                        <p className="text-sm text-gray-900">{droga.renglon || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Droga</label>
+                        <p className="text-sm text-gray-900">{droga.droga || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Presentación</label>
+                        <p className="text-sm text-gray-900">{droga.presentacion || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Forma Farmacéutica</label>
+                        <p className="text-sm text-gray-900">{droga.forma_farmaceutica || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Dosis Prescripta</label>
+                        <p className="text-sm text-gray-900">{droga.dosis_prescripta || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Dosis Unitaria</label>
+                        <p className="text-sm text-gray-900">{droga.dosis_unitaria || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Cantidad</label>
+                        <p className="text-sm text-gray-900">{droga.cantidad || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Unidades</label>
+                        <p className="text-sm text-gray-900">{droga.unidades || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Cobertura %</label>
+                        <p className="text-sm text-gray-900">{droga.cobertura || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Precio Unitario</label>
+                        <p className="text-sm text-gray-900">{droga.precio_unitario || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Precio Total</label>
+                        <p className="text-sm text-gray-900">{droga.precio_total || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Monto Cobertura</label>
+                        <p className="text-sm text-gray-900">{droga.monto_cobertura || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Copago</label>
+                        <p className="text-sm text-gray-900">{droga.copago || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Estado</label>
+                        <p className="text-sm text-gray-900">{droga.estado || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Código Estado</label>
+                        <p className="text-sm text-gray-900">{droga.codigo_estado || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Motivo Rechazo</label>
+                        <p className="text-sm text-gray-900">{droga.motivo_rechazo || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Observación</label>
+                        <p className="text-sm text-gray-900">{droga.observacion || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Prescripción</label>
+                        <p className="text-sm text-gray-900">{droga.prescripcion || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Dispensa</label>
+                        <p className="text-sm text-gray-900">{droga.dispensa || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Autorización</label>
+                        <p className="text-sm text-gray-900">{droga.autorizacion || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Farmacia</label>
+                        <p className="text-sm text-gray-900">{droga.farmacia || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">CUIT Farmacia</label>
+                        <p className="text-sm text-gray-900">{droga.cuit_farmacia || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Lote</label>
+                        <p className="text-sm text-gray-900">{droga.lote || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Serie</label>
+                        <p className="text-sm text-gray-900">{droga.serie || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Nro. Trazabilidad</label>
+                        <p className="text-sm text-gray-900">{droga.nro_trazabilidad || '-'}</p>
+                      </div>
+                    </div>
+
+                    {droga.seguimiento_descripcion && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <label className="block text-xs font-semibold text-gray-700 uppercase mb-2">Seguimiento (S)</label>
+                        <p className="text-sm text-gray-600 bg-white p-3 rounded-md">
+                          {droga.seguimiento_descripcion}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
