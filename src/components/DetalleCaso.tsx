@@ -797,10 +797,41 @@ export default function DetalleCaso({ casoId, onVolver, puedeGestionar }: Detall
 
                     {droga.seguimiento_descripcion && (
                       <div className="mt-4 pt-4 border-t border-gray-200">
-                        <label className="block text-xs font-semibold text-gray-700 uppercase mb-2">Seguimiento (S)</label>
-                        <p className="text-sm text-gray-600 bg-white p-3 rounded-md">
-                          {droga.seguimiento_descripcion}
-                        </p>
+                        <label className="block text-xs font-semibold text-gray-700 uppercase mb-3">Seguimiento ({droga.seguimiento_descripcion.split('\n\n').filter(line => line.trim()).length})</label>
+                        <div className="space-y-3">
+                          {droga.seguimiento_descripcion.split('\n\n').filter(line => line.trim()).map((item, idx) => {
+                            const lines = item.split('\n').filter(l => l.trim());
+                            const fechaHora = lines[0]?.trim();
+                            const estado = lines[1]?.replace('●', '').trim();
+                            const descripcion = lines.slice(2).join('\n').trim();
+
+                            const getEstadoColor = (estado: string) => {
+                              if (estado?.includes('Autorizado')) return 'text-green-600';
+                              if (estado?.includes('Pendiente')) return 'text-yellow-600';
+                              if (estado?.includes('Aprobado')) return 'text-blue-600';
+                              if (estado?.includes('Derivado')) return 'text-purple-600';
+                              return 'text-gray-600';
+                            };
+
+                            return (
+                              <div key={idx} className="flex gap-3 text-sm">
+                                <div className="flex-shrink-0 w-2 h-2 mt-1.5 rounded-full bg-blue-500"></div>
+                                <div className="flex-1">
+                                  <div className="text-gray-500 text-xs">{fechaHora}</div>
+                                  {estado && (
+                                    <div className={`font-medium flex items-center gap-1 ${getEstadoColor(estado)}`}>
+                                      <span>●</span>
+                                      <span>{estado}</span>
+                                    </div>
+                                  )}
+                                  {descripcion && (
+                                    <div className="text-gray-600 mt-1">{descripcion}</div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
